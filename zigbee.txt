@@ -1,0 +1,52 @@
+#-*- conding:utf-8 -*-
+import serial #串口模块
+import time
+import json
+import threading #多线程编程
+from time import ctime,sleep
+import queue
+q = queue.Queue()
+ser = serial.Serial("/dev/ttyUSB0",115200)#设置串口通信的波特率 使用USB0连接串行口
+def Zigbee():
+    while True:
+        count = ser.inWaiting() #返回接收缓存中的字节数
+        if count != 0:  #若不为空
+            recvs = ser.read(ser.in_waiting).decode('utf-8').split(':')[1] #ser.read# 从端口读字节数据
+            # 读出串口数据，数据采用gbk编码
+            recv = str(recvs).split('C')[0]
+            #recv = ser.readline().split('C')[0]
+            #recv1 = ser.read(ser.inWaiting())
+            ser.flushInput() #丢弃缓存中的字节数
+            q.put(recv) #将数据放进队列
+            data = str(recv)
+            print(data)
+        sleep(2)
+
+def Zigbee_json ():
+    global recv
+    while True:
+        if q.empty():
+            pass
+        else:
+            data = q.get('utf-8')#从队列中获取数据
+            tmp_output = open("tmp_data1.txt",'w')#可写入的方式打开文件
+            tmp_output.write(data)#把从串口获取的数据写入文件
+            tmp_output.flush() #用来刷新缓冲区的，即将缓冲区中的数据立刻写入文件，同时清空缓冲区 文件关闭后会自动刷新缓冲区，但有时你需要在关闭前刷新它
+            tmp_output.close() #文件关闭
+            print(data)
+            sleep(2)
+            
+    
+threads = []
+t1 = threading.Thread(target = Zigbee) #创建thread对象
+threads.append(t1)
+t2 = threading.Thread(target = Zigbee_json)
+threads.append(t2)
+if __name__ == '__main__': #相当于主函数入口
+    for t in threads:
+        t.start() #线程开始
+    t1.join()  #线程同步
+    t2.join()
+    while True:
+        sleep(2)
+
